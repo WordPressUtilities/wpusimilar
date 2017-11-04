@@ -4,7 +4,7 @@
 Plugin Name: WPU Similar
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Retrieve Similar Posts
-Version: 0.1.0
+Version: 0.2.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -77,10 +77,34 @@ class WPUSimilar {
             )
         );
 
-        $args = apply_filters('wpusimilar__get_posts_for_term__args', $args, $post_type, $term);
+        /* Catalog exclusion for products */
+        if (in_array('product', $args['post_type'])) {
+            $product_visibility_terms = wc_get_product_visibility_term_ids();
+            $args['tax_query'][] = array(
+                'taxonomy' => 'product_visibility',
+                'field' => 'term_taxonomy_id',
+                'terms' => $product_visibility_terms['exclude-from-catalog'],
+                'operator' => 'NOT IN'
+            );
+        }
+
+        $args = apply_filters('wpusimilar__get_posts_for_term__args', $args, $post_types, $term);
 
         return get_posts($args);
 
+    }
+
+    public function add_similar_to_list($extra_products, $similar_products = array()) {
+        if (!is_array($similar_products)) {
+            $similar_products = array();
+        }
+        foreach ($extra_products as $extra_product => $points) {
+            if (in_array($extra_product, $similar_products)) {
+                continue;
+            }
+            $similar_products[] = $extra_product;
+        }
+        return $similar_products;
     }
 }
 
