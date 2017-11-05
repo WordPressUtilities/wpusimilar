@@ -4,7 +4,7 @@
 Plugin Name: WPU Similar
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Retrieve Similar Posts
-Version: 0.2.0
+Version: 0.3.0
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -14,13 +14,15 @@ License URI: http://opensource.org/licenses/MIT
 class WPUSimilar {
 
     private $top_nb = 15;
+    private $query_cache_duration = 60;
 
     public function __construct() {
         add_action('plugins_loaded', array(&$this, 'plugins_loaded'));
     }
 
     public function plugins_loaded() {
-
+        $this->top_nb = apply_filters('wpusimilar__settings__top_nb', $this->top_nb);
+        $this->query_cache_duration = apply_filters('wpusimilar__settings__query_cache_duration', $this->query_cache_duration);
     }
 
     public function get_similar($post_id, $post_types = false, $taxonomies = array()) {
@@ -39,9 +41,21 @@ class WPUSimilar {
         }
         /* Build results */
         $posts_results = array();
-        foreach ($taxonomies as $tax_id) {
+        foreach ($taxonomies as $tax_name => $tax_details) {
+
+            $_tax_name = $tax_name;
+            if (!is_array($tax_details)) {
+                /* Extract tax name */
+                $_tax_name = $tax_details;
+                /* Extract params */
+                $tax_details = array();
+            }
+            if (!isset($tax_details['points'])) {
+                $tax_details['points'] = 1;
+            }
+
             /* Extract term list for this post */
-            $term_list = wp_get_post_terms($post_id, $tax_id, array("fields" => "all"));
+            $term_list = wp_get_post_terms($post_id, $_tax_name, array("fields" => "all"));
             foreach ($term_list as $term) {
                 /* Get latest posts with this term */
                 $top_posts = $this->get_posts_for_term($post_id, $post_types, $term);
@@ -50,7 +64,7 @@ class WPUSimilar {
                     if (!isset($posts_results[$top_post])) {
                         $posts_results[$top_post] = 0;
                     }
-                    $posts_results[$top_post]++;
+                    $posts_results[$top_post] += $tax_details['points'];
                 }
             }
         }
@@ -90,7 +104,20 @@ class WPUSimilar {
 
         $args = apply_filters('wpusimilar__get_posts_for_term__args', $args, $post_types, $term);
 
-        return get_posts($args);
+        $cache_id = 'wpusimilar_query_' . md5(json_encode($args));
+
+        // GET CACHED VALUE
+        $_posts = wp_cache_get($cache_id);
+        if ($_posts === false) {
+
+            // COMPUTE RESULT
+            $_posts = get_posts($args);
+
+            // CACHE RESULT
+            wp_cache_set($cache_id, $_posts, '', $this->query_cache_duration);
+        }
+
+        return $_posts;
 
     }
 
