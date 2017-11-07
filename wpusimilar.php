@@ -4,7 +4,7 @@
 Plugin Name: WPU Similar
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Retrieve Similar Posts
-Version: 0.3.0
+Version: 0.3.1
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -15,6 +15,7 @@ class WPUSimilar {
 
     private $top_nb = 15;
     private $query_cache_duration = 60;
+    private $exclude_outofstock_products = true;
 
     public function __construct() {
         add_action('plugins_loaded', array(&$this, 'plugins_loaded'));
@@ -23,6 +24,7 @@ class WPUSimilar {
     public function plugins_loaded() {
         $this->top_nb = apply_filters('wpusimilar__settings__top_nb', $this->top_nb);
         $this->query_cache_duration = apply_filters('wpusimilar__settings__query_cache_duration', $this->query_cache_duration);
+        $this->exclude_outofstock_products = apply_filters('wpusimilar__settings__exclude_outofstock_products', $this->exclude_outofstock_products);
     }
 
     public function get_similar($post_id, $post_types = false, $taxonomies = array()) {
@@ -100,6 +102,18 @@ class WPUSimilar {
                 'terms' => $product_visibility_terms['exclude-from-catalog'],
                 'operator' => 'NOT IN'
             );
+
+            /* Exclude out of stock products */
+            if ($this->exclude_outofstock_products) {
+                $args['meta_query'] = array(
+                    array(
+                        'key' => '_stock_status',
+                        'value' => 'outofstock',
+                        'compare' => 'NOT IN'
+                    )
+                );
+            }
+
         }
 
         $args = apply_filters('wpusimilar__get_posts_for_term__args', $args, $post_types, $term);
