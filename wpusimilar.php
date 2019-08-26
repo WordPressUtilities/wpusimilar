@@ -4,7 +4,7 @@
 Plugin Name: WPU Similar
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Retrieve Similar Posts
-Version: 0.3.1
+Version: 0.3.2
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -64,7 +64,7 @@ class WPUSimilar {
                 foreach ($top_posts as $top_post) {
                     /* Add a point for each occurence of this post */
                     if (!isset($posts_results[$top_post])) {
-                        $posts_results[$top_post] = 0;
+                        $posts_results[$top_post] = apply_filters('wpusimilar__get_similar__custom_post_boost', 0, $top_post);
                     }
                     $posts_results[$top_post] += $tax_details['points'];
                 }
