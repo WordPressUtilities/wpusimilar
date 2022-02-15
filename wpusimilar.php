@@ -4,7 +4,7 @@
 Plugin Name: WPU Similar
 Plugin URI: http://github.com/Darklg/WPUtilities
 Description: Retrieve Similar Posts
-Version: 0.3.3
+Version: 0.3.4
 Author: Darklg
 Author URI: http://darklg.me/
 License: MIT License
@@ -76,7 +76,7 @@ class WPUSimilar {
         return $posts_results;
     }
 
-    private function get_posts_for_term($post_id, $post_types = array(), $term) {
+    private function get_posts_for_term($post_id, $post_types, $term) {
 
         /* Build query */
         $args = array(
