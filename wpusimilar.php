@@ -2,13 +2,16 @@
 
 /*
 Plugin Name: WPU Similar
-Plugin URI: http://github.com/Darklg/WPUtilities
+Plugin URI: https://github.com/Darklg/WPUtilities
+Update URI: https://github.com/Darklg/WPUtilities
 Description: Retrieve Similar Posts
-Version: 0.3.4
+Version: 0.4.0
 Author: Darklg
-Author URI: http://darklg.me/
+Author URI: https://darklg.me/
+Requires at least: 6.2
+Requires PHP: 8.0
 License: MIT License
-License URI: http://opensource.org/licenses/MIT
+License URI: https://opensource.org/licenses/MIT
 */
 
 class WPUSimilar {
@@ -27,7 +30,7 @@ class WPUSimilar {
         $this->exclude_outofstock_products = apply_filters('wpusimilar__settings__exclude_outofstock_products', $this->exclude_outofstock_products);
     }
 
-    public function get_similar($post_id, $post_types = false, $taxonomies = array()) {
+    public function get_similar($post_id, $post_types = false, $taxonomies = array(), $args = array()) {
         /* Ensure correct args */
         if (!$post_id || !is_numeric($post_id)) {
             return array();
@@ -40,6 +43,9 @@ class WPUSimilar {
         }
         if (!is_array($taxonomies)) {
             $taxonomies = array($taxonomies);
+        }
+        if (!is_array($args)) {
+            $args = array();
         }
         /* Build results */
         $posts_results = array();
@@ -73,6 +79,11 @@ class WPUSimilar {
         /* Order by number of points */
         arsort($posts_results);
 
+        if(isset($args['max_number']) && is_numeric($args['max_number'])){
+            $posts_results = array_keys($posts_results);
+            $posts_results = array_slice($posts_results, 0, $args['max_number']);
+        }
+
         return $posts_results;
     }
 
@@ -84,6 +95,8 @@ class WPUSimilar {
             'post_status' => apply_filters('wpusimilar__get_posts__post_status', 'publish'),
             'posts_per_page' => $this->top_nb,
             'post__not_in' => array($post_id),
+            'orderby' => 'date',
+            'order' => 'DESC',
             'fields' => 'ids',
             'tax_query' => array(
                 array(
