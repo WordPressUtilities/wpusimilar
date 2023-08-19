@@ -5,7 +5,7 @@ Plugin Name: WPU Similar
 Plugin URI: https://github.com/Darklg/WPUtilities
 Update URI: https://github.com/Darklg/WPUtilities
 Description: Retrieve Similar Posts
-Version: 0.4.0
+Version: 0.5.0
 Author: Darklg
 Author URI: https://darklg.me/
 Requires at least: 6.2
@@ -47,6 +47,7 @@ class WPUSimilar {
         if (!is_array($args)) {
             $args = array();
         }
+        $post_details = get_post($post_id);
         /* Build results */
         $posts_results = array();
         foreach ($taxonomies as $tax_name => $tax_details) {
@@ -76,12 +77,38 @@ class WPUSimilar {
                 }
             }
         }
+
+        /* Boost for same author */
+        if (isset($args['same_author_boost']) && is_numeric($args['same_author_boost'])) {
+            $posts_author = get_posts(array(
+                'post_type' => $post_types,
+                'post_status' => apply_filters('wpusimilar__get_posts__post_status', 'publish'),
+                'posts_per_page' => $this->top_nb,
+                'post__not_in' => array($post_id),
+                'orderby' => 'date',
+                'order' => 'DESC',
+                'fields' => 'ids',
+                'author' => intval($post_details->author, 10)
+            ));
+            if ($posts_author) {
+                foreach ($posts_author as $post_author_id) {
+                    if (isset($posts_results[$post_author_id])) {
+                        $posts_results[$post_author_id] += $args['same_author_boost'];
+                    }
+                }
+            }
+        }
+
         /* Order by number of points */
         arsort($posts_results);
 
-        if(isset($args['max_number']) && is_numeric($args['max_number'])){
+        if (isset($args['max_number']) && is_numeric($args['max_number'])) {
             $posts_results = array_keys($posts_results);
             $posts_results = array_slice($posts_results, 0, $args['max_number']);
+        } else {
+            if (isset($args['return_ids']) && $args['return_ids']) {
+                $posts_results = array_keys($posts_results);
+            }
         }
 
         return $posts_results;
